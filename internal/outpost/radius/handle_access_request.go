@@ -13,14 +13,17 @@ import (
 
 func (rs *RadiusServer) Handle_AccessRequest(w radius.ResponseWriter, r *RadiusRequest) {
 	username := rfc2865.UserName_GetString(r.Packet)
+	nasIndentifier := rfc2865.NASIPAddress_Get(r.Packet).String()
 
 	fe := flow.NewFlowExecutor(r.Context(), r.pi.flowSlug, r.pi.s.ac.Client.GetConfig(), log.Fields{
-		"username":  username,
-		"client":    r.RemoteAddr(),
-		"requestId": r.ID(),
+		"username":       username,
+		"client":         r.RemoteAddr(),
+		"requestId":      r.ID(),
+		"nasIndentifier": nasIndentifier,
 	})
 	fe.DelegateClientIP(r.RemoteAddr())
 	fe.Params.Add("goauthentik.io/outpost/radius", "true")
+	fe.Params.Add("goauthentik.io/outpost/radius-nas-identifier", nasIndentifier)
 
 	fe.Answers[flow.StageIdentification] = username
 	fe.SetSecrets(rfc2865.UserPassword_GetString(r.Packet), r.pi.MFASupport)
